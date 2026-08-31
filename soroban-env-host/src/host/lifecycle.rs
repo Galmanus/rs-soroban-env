@@ -373,6 +373,17 @@ impl Host {
         let mut storage = self.try_borrow_storage_mut()?;
 
         // We will definitely put the contract in the ledger if it isn't there yet.
+        //
+        // In the test / `testutils` path, check the code entry existence
+        // directly in the storage map instead of going through the snapshot in
+        // the recording mode (as synthetic Wasms may not appear in the
+        // snapshot, and there is no need to read a key that is about to be
+        // written). This mirrors the native test-contract registration path in
+        // `register_native_contract_as_wasm_internal`.
+        #[cfg(any(test, feature = "testutils"))]
+        #[allow(unused_mut)]
+        let mut should_put_contract = storage.get_from_map(&code_key, self)?.is_none();
+        #[cfg(not(any(test, feature = "testutils")))]
         #[allow(unused_mut)]
         let mut should_put_contract = !storage.has(&code_key, self, None)?;
 
